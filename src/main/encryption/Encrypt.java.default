@@ -1,0 +1,131 @@
+package main.encryption;
+
+import java.security.InvalidAlgorithmParameterException;
+import java.security.InvalidKeyException;
+import java.security.NoSuchAlgorithmException;
+import java.security.NoSuchProviderException;
+import java.security.spec.InvalidKeySpecException;
+import java.security.spec.KeySpec;
+import java.util.Arrays;
+
+import javax.crypto.BadPaddingException;
+import javax.crypto.Cipher;
+import javax.crypto.IllegalBlockSizeException;
+import javax.crypto.NoSuchPaddingException;
+import javax.crypto.SecretKey;
+import javax.crypto.SecretKeyFactory;
+import javax.crypto.spec.IvParameterSpec;
+import javax.crypto.spec.PBEKeySpec;
+import javax.crypto.spec.SecretKeySpec;
+
+import main.FileUtils;
+
+/**
+ * 
+ * @link https://gist.github.com/bricef/2436364/
+ * @link https://gist.github.com/dweymouth/11089238
+ *
+ */
+public class Encrypt {
+	private final static String CIPHER_SUITE = "AES/CBC/PKCS5Padding";
+
+	// TODO: Replace AAAAAAAAAAAAAAAA
+	private final static String IV = "AAAAAAAAAAAAAAAA";
+	private static final String KEYGEN_SPEC = "PBKDF2WithHmacSHA1";
+
+        // TODO: Replace Passphrase
+	private final static String PASSPHRASE = "Not use this password.";
+
+	// Select a keystore bytes
+	private static final int AUTH_KEY_LENGTH = 8; // in bytes
+
+	// TODO: Use your own iteration
+	private static final int ITERATIONS = 1000;
+
+	// TODO: Use your own SALT
+	private static final byte[] SALT = "Is Gillian Seed a SNATCHER?".getBytes();
+
+	public static void main(String[] args) {
+
+		try {
+
+			byte[] read = FileUtils.readFile(args[0]);
+
+			if (read == null) {
+				System.out.println("No hay fichero");
+				System.exit(-1);
+			}
+
+			System.out.print(args[0] + " encoding... ");
+			System.out.println(read.length);
+
+			// System.out.println("==Java==");
+			// System.out.println("plain: " + plaintext);
+
+			byte[] cipher = encrypt(read);
+
+			FileUtils.createFile(args[1], cipher);
+
+			// String decrypted = decrypt(cipher, encryptionKey);
+
+			// System.out.println("decrypt: " + decrypted);
+
+		} catch (Exception e) {
+			e.printStackTrace();
+		}
+	}
+
+	/**
+	 * Derive an AES encryption key and authentication key from given password and salt,
+	 * using PBKDF2 key stretching. The authentication key is 64 bits long.
+	 * @param keyLength
+	 *   length of the AES key in bits (128, 192, or 256)
+	 * @param password
+	 *   the password from which to derive the keys
+	 * @param salt
+	 *   the salt from which to derive the keys
+	 * @return a Keys object containing the two generated keys
+	 */
+	private static Keys keygen() {
+		SecretKeyFactory factory;
+		try {
+			factory = SecretKeyFactory.getInstance(KEYGEN_SPEC);
+		} catch (NoSuchAlgorithmException impossible) { return null; }
+		// derive a longer key, then split into AES key and authentication key
+		KeySpec spec = new PBEKeySpec(PASSPHRASE.toCharArray(), SALT, ITERATIONS, 128 + AUTH_KEY_LENGTH * 8);
+		SecretKey tmp = null;
+		try {
+			tmp = factory.generateSecret(spec);
+		} catch (InvalidKeySpecException impossible) { }
+		byte[] fullKey = tmp.getEncoded();
+		SecretKey authKey = new SecretKeySpec( // key for password authentication
+				Arrays.copyOfRange(fullKey, 0, AUTH_KEY_LENGTH), "AES");
+		SecretKey encKey = new SecretKeySpec( // key for AES encryption
+				Arrays.copyOfRange(fullKey, AUTH_KEY_LENGTH, fullKey.length), "AES");
+		return new Keys(encKey, authKey);
+	}
+
+	public static byte[] encrypt(byte[] plainText)
+			throws NoSuchAlgorithmException, InvalidKeySpecException,
+			NoSuchPaddingException, InvalidKeyException,
+			InvalidAlgorithmParameterException, IllegalBlockSizeException,
+			BadPaddingException, NoSuchProviderException {
+		Cipher cipher = Cipher.getInstance(CIPHER_SUITE);
+
+		cipher.init(Cipher.ENCRYPT_MODE, keygen().encryption,
+				new IvParameterSpec(IV.getBytes()));
+		return cipher.doFinal(plainText);
+	}
+
+	public static byte[] decrypt(byte[] cipherText)
+			throws NoSuchAlgorithmException, InvalidKeySpecException,
+			NoSuchPaddingException, InvalidKeyException,
+			InvalidAlgorithmParameterException, IllegalBlockSizeException,
+			BadPaddingException, NoSuchProviderException {
+		Cipher cipher = Cipher.getInstance(CIPHER_SUITE);
+
+		cipher.init(Cipher.DECRYPT_MODE, keygen().encryption,
+				new IvParameterSpec(IV.getBytes()));
+		return cipher.doFinal(cipherText);
+	}
+}

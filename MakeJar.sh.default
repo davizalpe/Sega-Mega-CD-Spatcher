@@ -1,0 +1,48 @@
+echo "Manifest-Version: 1.0
+Main-Class: main.Spatcher" > temp.mf
+
+# Create temporal paths for create .jar file
+mkdir all_data
+mkdir resources
+
+# Copy binary text files translated and subcode
+unzip Sega-CD-Snatcher-Language-Patcher/Files/BinaryFiles/translated/allfiles.zip -d all_data/
+unzip Sega-CD-Snatcher-Language-Patcher/Files/Attachments/SUBCODE.zip -d all_data/
+
+# Copy game files
+cp Sega-CD-Snatcher-Language-Patcher/Files/Attachments/DATA*.BIN all_data/
+
+cd all_data
+zip file.zip *.BIN
+cd ..
+
+# Encrypt zip to .file.dat
+cd bin
+java main.encryption.Encrypt ../all_data/file.zip ../resources/.file.dat
+cd ..
+
+# Copy Java code
+cp -r bin/main/ .
+cp -r bin/window/ .
+
+# Create jar file
+jar cmf temp.mf spatcher.jar main window resources
+
+# Sign file jar
+jarsigner -keystore spatcherKeystore spatcher.jar spatcherkey
+
+# Delete all temporal data and bytecode
+rm all_data/*
+rmdir all_data
+rm main/encryption/*
+rmdir main/encryption
+rm main/*
+rm window/*
+rmdir main
+rmdir window
+rm resources/.file.dat
+rmdir resources
+rm temp.mf
+
+# Sign with your GPG Key
+gpg --output spatcher.jar.sig --sign spatcher.jar

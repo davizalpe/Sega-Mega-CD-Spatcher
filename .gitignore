@@ -1,0 +1,20 @@
+# Eclipse files
+/target
+/bin
+/lib
+.project
+.settings
+.classpath
+.metadata
+# IntelliJ file
+.idea
+*.iml
+# Spartcher files
+MakeJar.sh
+spatcher.jar
+spatcher.jar.asc
+TODO
+# Optional, but you should prefer sign the file with your GPG keys
+SpatcherCert.crt
+spatcherKeystore
+src/main/encryption/Encrypt.java
