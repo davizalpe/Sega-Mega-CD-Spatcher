@@ -39,7 +39,7 @@ or just clic on the jar file.
 License
 -------
 
-The source code for the web project is licensed under the GPL version 3 or later
+The source code is licensed under the GPL version 3 or later
 (see COPYING).
 
 This file is part of Spatcher.
